@@ -22,6 +22,7 @@ var (
 	importsRegex       = regexp.MustCompile(`^import\s*\(\s*$`)
 	importOneLineRegex = regexp.MustCompile(`^import\s+".+"$`)
 	y                  = yevna.New()
+	verbose            bool
 )
 
 func init() {
@@ -41,7 +42,11 @@ func GetGoFiles(moduleName string) ([]GoFile, error) {
 	var tmpl bytes.Buffer
 	tmpl.WriteString("{{ range .GoFiles }}")
 	tmpl.WriteString(fmt.Sprintf("{{ if eq $.Name \"%s\" }}", moduleName))
-	tmpl.WriteString(`{{ printf "- imports: %s\n  path: \"%s/%s\"\n" $.Imports $.Dir . }}`)
+	tmpl.WriteString(`{{ printf "- path: \"%s/%s\"\n" $.Dir . }}`)
+	tmpl.WriteString(`{{ printf "  imports:\n" }}`)
+	tmpl.WriteString(`{{ range $.Imports }}`)
+	tmpl.WriteString(`{{ printf "    - %s\n" . }}`)
+	tmpl.WriteString(`{{ end }}`)
 	tmpl.WriteString("{{ end }}")
 	tmpl.WriteString("{{ end }}")
 
@@ -151,7 +156,31 @@ func AutoImports(moduleName string, pkgs []string, dryrun bool) error {
 	if err != nil {
 		return err
 	}
+
+	if verbose {
+		fmt.Printf("module '%s' has %d go files\n", moduleName, len(gofiles))
+		for _, file := range gofiles {
+			fmt.Printf(" - path: %s\n", file.Path)
+			fmt.Printf("   imports:\n")
+			for _, imp := range file.Imports {
+				fmt.Printf("    - %s\n", imp)
+			}
+		}
+	}
+
 	gofiles = Filter(moduleName, gofiles)
+
+	if verbose {
+		fmt.Printf("module '%s' has %d go files after filtering\n", moduleName, len(gofiles))
+		for _, file := range gofiles {
+			fmt.Printf(" - path: %s\n", file.Path)
+			fmt.Printf("   imports:\n")
+			for _, imp := range file.Imports {
+				fmt.Printf("    - %s\n", imp)
+			}
+		}
+	}
+
 	missingImports := GetMissingImports(gofiles, pkgs)
 
 	for pkg, files := range missingImports {
@@ -182,6 +211,11 @@ func main() {
 		Name:  "goautoimports",
 		Usage: "automatically add imports to go files",
 		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:        "verbose",
+				DefaultText: "false",
+				Value:       false,
+			},
 			&cli.StringFlag{
 				Name:        "module",
 				DefaultText: "main",
@@ -201,6 +235,7 @@ func main() {
 			},
 		},
 		Action: func(c *cli.Context) error {
+			verbose = c.Bool("verbose")
 			pkgStr := c.String("pkg")
 			return AutoImports(
 				c.String("module"),

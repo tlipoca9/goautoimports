@@ -5,6 +5,7 @@ go 1.22.1
 require (
 	github.com/tlipoca9/yevna v0.1.6
 	github.com/urfave/cli/v2 v2.27.1
+	golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561
 )
 
 require (
