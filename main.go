@@ -31,6 +31,11 @@ func init() {
 	y.Tracer(tracer.Discard)
 }
 
+type GoFile struct {
+	Imports []string `json:"imports"`
+	Path    string   `json:"path"`
+}
+
 func GetGoFiles(moduleName string) ([]GoFile, error) {
 	var tmpl bytes.Buffer
 	tmpl.WriteString("{{ range .GoFiles }}")
@@ -52,12 +57,14 @@ func GetGoFiles(moduleName string) ([]GoFile, error) {
 }
 
 // Filter filters the files with the same directory
-func Filter(files []GoFile) []GoFile {
+func Filter(moduleName string, files []GoFile) []GoFile {
+	mainFile := fmt.Sprintf("%s.go", moduleName)
+
 	visit := make(map[string]GoFile)
 	for _, file := range files {
 		dir := filepath.Dir(file.Path)
 		name := filepath.Base(file.Path)
-		if name == "main.go" {
+		if name == mainFile {
 			visit[dir] = file
 			continue
 		}
@@ -126,19 +133,20 @@ func AddImport(file string, pkg string) error {
 	)
 }
 
-func AutoImports(pkgs []string, dryrun bool) error {
-	gofiles, err := GetGoFiles("main")
+func AutoImports(moduleName string, pkgs []string, dryrun bool) error {
+	gofiles, err := GetGoFiles(moduleName)
 	if err != nil {
 		return err
 	}
-	gofiles = Filter(gofiles)
+	gofiles = Filter(moduleName, gofiles)
 	missingImports := GetMissingImports(gofiles, pkgs)
 
 	for pkg, files := range missingImports {
 		fmt.Printf("package %s is missing in the following files:\n", pkg)
 		for _, file := range files {
-			fmt.Println(file)
+			fmt.Printf(" - %s\n", file)
 		}
+		fmt.Println()
 		if dryrun {
 			continue
 		}
@@ -150,7 +158,10 @@ func AutoImports(pkgs []string, dryrun bool) error {
 				fmt.Printf("added %s to %s\n", pkg, file)
 			}
 		}
+		fmt.Println()
 	}
+
+	fmt.Println("goautoimports completed, please run 'go mod tidy' to clean up the imports.")
 
 	return nil
 }
@@ -160,6 +171,12 @@ func main() {
 		Name:  "goautoimports",
 		Usage: "automatically add imports to go files",
 		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "module",
+				DefaultText: "main",
+				Value:       "main",
+				Aliases:     []string{"m"},
+			},
 			&cli.StringFlag{
 				Name:        "pkg",
 				DefaultText: "go.uber.org/automaxprocs,github.com/KimMachineGun/automemlimit",
@@ -174,7 +191,11 @@ func main() {
 		},
 		Action: func(c *cli.Context) error {
 			pkgStr := c.String("pkg")
-			return AutoImports(strings.Split(pkgStr, ","), c.Bool("dryrun"))
+			return AutoImports(
+				c.String("module"),
+				strings.Split(pkgStr, ","),
+				c.Bool("dryrun"),
+			)
 		},
 	}
 
