@@ -146,7 +146,6 @@ func AutoImports(moduleName string, pkgs []string, dryrun bool) error {
 		for _, file := range files {
 			fmt.Printf(" - %s\n", file)
 		}
-		fmt.Println()
 		if dryrun {
 			continue
 		}
@@ -158,7 +157,6 @@ func AutoImports(moduleName string, pkgs []string, dryrun bool) error {
 				fmt.Printf("added %s to %s\n", pkg, file)
 			}
 		}
-		fmt.Println()
 	}
 
 	fmt.Println("goautoimports completed, please run 'go mod tidy' to clean up the imports.")
