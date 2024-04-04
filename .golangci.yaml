@@ -1,0 +1,16 @@
+run:
+  timeout: 5m
+
+linters-settings:
+  gofmt:
+    simplify: true
+    rewrite-rules:
+      - pattern: 'interface{}'
+        replacement: 'any'
+  goimports:
+    local-prefixes: github.com/tlipoca9/goautoimports
+
+linters:
+  enable:
+    - gofmt
+    - goimports
