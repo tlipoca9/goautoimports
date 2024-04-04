@@ -22,6 +22,7 @@ goautoimports
 
 ```bash
 $ goautoimports -h
+
 NAME:
    goautoimports - automatically add imports to go files
 
@@ -32,8 +33,10 @@ COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
+   --verbose                 (default: false)
    --module value, -m value  (default: main)
    --pkg value, -p value     (default: go.uber.org/automaxprocs,github.com/KimMachineGun/automemlimit)
    --dryrun                  (default: false)
    --help, -h                show help
+   
 ```
