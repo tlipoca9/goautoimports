@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"golang.org/x/exp/maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -64,13 +65,25 @@ func Filter(moduleName string, files []GoFile) []GoFile {
 	for _, file := range files {
 		dir := filepath.Dir(file.Path)
 		name := filepath.Base(file.Path)
+
+		imports := make(map[string]struct{})
+		for _, imp := range file.Imports {
+			imports[imp] = struct{}{}
+		}
+		if v, ok := visit[dir]; ok {
+			for _, imp := range v.Imports {
+				imports[imp] = struct{}{}
+			}
+		}
+
 		if name == mainFile {
+			file.Imports = maps.Keys(imports)
 			visit[dir] = file
-			continue
-		}
-		if _, ok := visit[dir]; !ok {
+		} else if _, ok := visit[dir]; !ok {
+			file.Imports = maps.Keys(imports)
 			visit[dir] = file
 		}
+
 	}
 
 	var ret []GoFile
